@@ -49,7 +49,13 @@ export async function POST(request: NextRequest) {
     // Call resolveDispute on-chain using deployer wallet (AI Judge role)
     let txHash: string | null = null;
     try {
-      if (!job.onchain_job_id && job.onchain_job_id !== 0) {
+      const isDemo = !!(job.client?.email?.endsWith('@demo.freelanceguard.app') || job.freelancer?.email?.endsWith('@demo.freelanceguard.app'));
+
+      if (isDemo) {
+        console.log('[DEMO] Skipping on-chain dispute resolution call');
+        await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate blockchain delay
+        txHash = `0xdemo_resolve_${Math.random().toString(16).slice(2, 10)}${Date.now().toString(16)}`;
+      } else if (!job.onchain_job_id && job.onchain_job_id !== 0) {
         console.warn('⚠️ Job has no onchain_job_id — skipping on-chain resolution (mock mode)');
       } else {
         const privateKey = process.env.DEPLOYER_PRIVATE_KEY as `0x${string}`;

@@ -3,6 +3,7 @@ import { createWalletClientFromPrivateKey, publicClient } from '@/lib/viem';
 import { jobEscrowContract, usdcContract } from '@/lib/contracts';
 import { parseUnits, decodeEventLog } from 'viem';
 import { CONTRACT_ADDRESSES } from '@/lib/constants';
+import { getSession } from '@/lib/auth/session';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,17 @@ export async function POST(request: Request) {
 
     if (!freelancerWalletAddress || !amount || !deadline || !criteriaHash) {
       return NextResponse.json({ message: 'Missing parameters' }, { status: 400 });
+    }
+
+    const session = await getSession();
+    const isDemo = !!session?.email?.endsWith('@demo.freelanceguard.app');
+
+    if (isDemo) {
+      console.log('[DEMO] Bypassing createJob write contract call');
+      await new Promise((resolve) => setTimeout(resolve, 800)); // simulate delay
+      const mockTx = `0xdemo_accept_${Math.random().toString(16).slice(2, 10)}${Date.now().toString(16)}`;
+      const mockJobId = Math.floor(Math.random() * 1000000);
+      return NextResponse.json({ jobId: mockJobId, txHash: mockTx });
     }
 
     const privateKey = process.env.DEPLOYER_PRIVATE_KEY as `0x${string}`;

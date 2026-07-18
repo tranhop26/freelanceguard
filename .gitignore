@@ -23,3 +23,6 @@ contracts/deployments/*.json
 !contracts/deployments/.gitkeep
 
 *.pem
+
+.vercel
+.env*

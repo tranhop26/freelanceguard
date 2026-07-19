@@ -83,7 +83,7 @@ export default function NewJobPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to publish job listing.');
+        throw new Error(errorData.error || errorData.message || 'Failed to publish job listing.');
       }
 
       const newJob = await res.json();

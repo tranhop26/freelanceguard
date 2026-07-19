@@ -84,6 +84,7 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
+      console.error('❌ Supabase job insert failed:', error);
       return NextResponse.json({ message: 'Failed to create job', error: error.message }, { status: 500 });
     }
 

@@ -344,7 +344,7 @@ export function JobWorkroomClient({ job: initialJob, currentUserSession, isClien
           </span>
           {job.create_tx_hash && (
             <a 
-              href={`https://testnet.arcscan.app/tx/${job.create_tx_hash}`}
+              href={job.create_tx_hash.startsWith('0xdemo') ? 'https://testnet.arcscan.app/address/0xE0a2BDd5b0b0E75aFfAEcf331bEE13FE7a3D9803' : `https://testnet.arcscan.app/tx/${job.create_tx_hash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[10px] text-blue-700 font-bold hover:underline flex items-center gap-0.5 mt-1"
@@ -405,7 +405,7 @@ export function JobWorkroomClient({ job: initialJob, currentUserSession, isClien
                     </span>
                     {job.resolve_tx_hash && (
                       <a
-                        href={`https://testnet.arcscan.app/tx/${job.resolve_tx_hash}`}
+                        href={job.resolve_tx_hash.startsWith('0xdemo') ? 'https://testnet.arcscan.app/address/0xE0a2BDd5b0b0E75aFfAEcf331bEE13FE7a3D9803' : `https://testnet.arcscan.app/tx/${job.resolve_tx_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[10px] text-blue-700 font-bold hover:underline flex items-center gap-0.5"

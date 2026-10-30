@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -21,8 +20,8 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ profile, initialClientJobs, initialFreelancerJobs }: DashboardClientProps) {
-  const [clientJobs] = useState<Job[]>(initialClientJobs);
-  const [freelancerJobs] = useState<Job[]>(initialFreelancerJobs);
+  const clientJobs = initialClientJobs;
+  const freelancerJobs = initialFreelancerJobs;
 
   // Client Stats
   const activeClientJobsCount = clientJobs.filter(j => ['open', 'in_progress', 'submitted', 'disputed'].includes(j.status)).length;
@@ -121,7 +120,7 @@ export function DashboardClient({ profile, initialClientJobs, initialFreelancerJ
 
       {/* Tabs list */}
       <div className="space-y-6">
-        <Tabs defaultValue={profile.role === 'freelancer' ? 'freelancer' : 'client'} className="w-full">
+        <Tabs key={profile.id} defaultValue={profile.role === 'freelancer' ? 'freelancer' : 'client'} className="w-full">
           <TabsList className="grid w-full max-w-[400px] grid-cols-2 bg-slate-100 p-1 rounded-lg">
             <TabsTrigger value="client" className="rounded-md py-1.5 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm">
               As Client

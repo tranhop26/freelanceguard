@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { useAuthStore } from '@/lib/stores/authStore';
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, Shield, Zap, DollarSign, Scale, Globe, Lock, CheckCircle2, 
-  HelpCircle, Star, AlertCircle, Sparkles, Building2, UserCheck, Mail
+  HelpCircle, Star, AlertCircle, Sparkles, Building2, UserCheck, Mail, Loader2
 } from 'lucide-react';
 
 export default function Home() {
@@ -26,8 +26,11 @@ export default function Home() {
 function LandingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [authOpen, setAuthOpen] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
+  const demoPending = useRef(false);
 
   // If redirected with auth=required, open auth modal
   useEffect(() => {
@@ -46,19 +49,30 @@ function LandingPageContent() {
   };
 
   const handleDemoMode = async () => {
+    if (demoPending.current) return;
+    demoPending.current = true;
+    setDemoLoading(true);
+    setDemoError(null);
     toast.loading('Setting up demo sandbox...', { id: 'demo' });
     try {
-      const res = await fetch('/api/seed', { method: 'POST' });
-      if (!res.ok) throw new Error('Seeding failed');
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Demo ready! Logged in as ${data.demo_user.display_name}`, { id: 'demo' });
-        router.push('/dashboard?demo=true');
-      } else {
-        throw new Error(data.error || 'Failed to setup demo');
+      const res = await fetch('/api/seed', { method: 'POST', signal: AbortSignal.timeout(35000) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success || !data?.demo_user?.id) {
+        throw new Error(data?.error || 'Demo could not be started. Please try again shortly.');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to setup demo', { id: 'demo' });
+      setUser(data.demo_user);
+      toast.success(`Demo ready! Logged in as ${data.demo_user.display_name}`, { id: 'demo' });
+      router.push('/dashboard?demo=true');
+      router.refresh();
+    } catch (err: unknown) {
+      const message = err instanceof Error && err.name !== 'TimeoutError'
+        ? err.message
+        : 'Demo setup timed out. Please try again shortly.';
+      setDemoError(message);
+      toast.error(message, { id: 'demo' });
+    } finally {
+      demoPending.current = false;
+      setDemoLoading(false);
     }
   };
 
@@ -92,12 +106,16 @@ function LandingPageContent() {
                 </Button>
                 <Button 
                   onClick={handleDemoMode}
+                  disabled={demoLoading}
+                  aria-busy={demoLoading}
                   variant="outline"
                   className="border-slate-200 hover:bg-slate-50 text-slate-800 font-semibold py-3 px-8 rounded-lg text-base shadow-sm"
                 >
-                  Try Demo Mode
+                  {demoLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {demoLoading ? 'Preparing Demo...' : 'Try Demo Mode'}
                 </Button>
               </div>
+              {demoError && <p role="alert" className="text-sm text-red-700">{demoError}</p>}
               <p className="text-xs text-slate-500">
                 No crypto experience or seed phrases needed. Sign up with email in 10 seconds.
               </p>
@@ -370,11 +388,14 @@ function LandingPageContent() {
             <div>
               <Button
                 onClick={handleDemoMode}
+                disabled={demoLoading}
+                aria-busy={demoLoading}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg text-base shadow-md transition-all inline-flex items-center gap-2"
               >
-                Launch App Demo
-                <ArrowRight className="h-5 w-5" />
+                {demoLoading ? 'Preparing Demo...' : 'Launch App Demo'}
+                {demoLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
               </Button>
+              {demoError && <p className="mt-3 text-sm text-red-300">{demoError}</p>}
             </div>
           </div>
         </div>

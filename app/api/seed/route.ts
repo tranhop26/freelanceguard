@@ -71,13 +71,13 @@ const DEMO_CHAT = [
 ];
 
 export async function POST(request: NextRequest) {
-  const supabase = createAdminClient();
   const { searchParams } = new URL(request.url);
   const reset = searchParams.get('reset') === 'true';
 
   const result: any = { users: [], jobs: [], errors: [] };
 
   try {
+    const supabase = createAdminClient();
     // 1. Optional Reset Mode (performs robust cascading deletes to avoid foreign key errors)
     if (reset) {
       console.log('🔄 Resetting demo data...');
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     const minh = result.users.find((u: any) => u.email === 'minh@demo.freelanceguard.app');
 
     if (!sarah || !minh) {
-      return NextResponse.json({ error: 'Failed to create demo users', details: result.errors }, { status: 500 });
+      throw new Error(`Failed to create demo users: ${result.errors.join('; ')}`);
     }
 
     // 3. Seed Jobs
@@ -169,17 +169,22 @@ export async function POST(request: NextRequest) {
         // Add chat messages to the in_progress job
         if (jobData.status === 'in_progress') {
           for (const msg of DEMO_CHAT) {
-            await supabase.from('messages').insert({
+            const { error: messageError } = await supabase.from('messages').insert({
               job_id: data.id,
               sender_id: msg.from === 'client' ? sarah.id : minh.id,
               content: msg.content,
             });
+            if (messageError) result.errors.push(`Demo chat: ${messageError.message}`);
           }
         }
       }
     }
 
-    // 4. Create and set Cookie Session for Sarah (Client)
+    if (result.users.length !== DEMO_USERS.length || result.jobs.length !== DEMO_JOBS.length || result.errors.length > 0) {
+      throw new Error(`Demo initialization incomplete: ${result.errors.join('; ')}`);
+    }
+
+    // 4. Create and set Cookie Session only after the complete sandbox is ready.
     const sessionToken = await createSession({
       user_id: sarah.id,
       email: sarah.email,
@@ -211,6 +216,9 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (err: any) {
     console.error('Demo seeding failed:', err);
-    return NextResponse.json({ error: err.message || 'Seeding failed' }, { status: 500 });
+    return NextResponse.json({
+      code: 'DEMO_UNAVAILABLE',
+      error: 'Demo is temporarily unavailable because the demo database could not be initialized. Please try again shortly.',
+    }, { status: 503 });
   }
 }
